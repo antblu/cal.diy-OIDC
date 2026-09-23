@@ -12,6 +12,45 @@ The Docker configuration for Cal.diy is officially maintained in the main Cal.di
 
 Make sure you have `docker` & `docker compose` installed on the server / system. Note: `docker compose` without the hyphen is now the primary method of using docker-compose, per the Docker documentation.
 
+### OCI image for Kubernetes
+
+Changes pushed to this fork's `OIDC` or `main` branch build a web image for `linux/amd64` and `linux/arm64` and publish it to GitHub Container Registry. Pull requests build the image without publishing. Use an immutable `sha-<full commit SHA>` tag in your Kubernetes Deployment:
+
+```yaml
+containers:
+  - name: calcom
+    image: ghcr.io/antblu/cal.diy-oidc:sha-<full commit SHA>
+    ports:
+      - containerPort: 3000
+    env:
+      - name: DATABASE_HOST
+        value: postgres.example.svc.cluster.local:5432
+      - name: DATABASE_URL
+        valueFrom:
+          secretKeyRef:
+            name: calcom-database
+            key: url
+      - name: DATABASE_DIRECT_URL
+        valueFrom:
+          secretKeyRef:
+            name: calcom-database
+            key: direct-url
+      - name: NEXTAUTH_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: calcom-auth
+            key: nextauth-secret
+      - name: CALENDSO_ENCRYPTION_KEY
+        valueFrom:
+          secretKeyRef:
+            name: calcom-auth
+            key: encryption-key
+      - name: NEXT_PUBLIC_WEBAPP_URL
+        value: https://cal.example.com
+```
+
+Set the database and URL values for your cluster. The container runs database migrations at startup, so the database must be reachable and the configured user must have migration permissions. Supply any additional integration settings as runtime environment variables. GitHub package visibility or an image pull secret must permit the cluster to pull the image.
+
 ### Getting Started
 
 Clone the Cal.diy repository
